@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/TransMorph_affine" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/TransMorph_affine/utils" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/utils" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/TransMorph/models" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/utilses" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/TransUnet" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CPCA" isTestSource="false" />
+    </content>
+    <orderEntry type="jdk" jdkName="Python 3.7 (pytorch) (6)" jdkType="Python SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+  <component name="PyDocumentationSettings">
+    <option name="format" value="PLAIN" />
+    <option name="myDocStringFormat" value="Plain" />
+  </component>
+  <component name="TestRunnerService">
+    <option name="PROJECT_TEST_RUNNER" value="pytest" />
+  </component>
+</module>
