@@ -5,6 +5,8 @@ import torch.nn.functional as F
 from torch.distributions.normal import Normal
 import layers
 from modelio import store_config_args, LoadableModel
+from utilses.config import get_args
+args = get_args()
 
 
 def default_unet_features():
@@ -55,18 +57,19 @@ class CorrTorch(nn.Module):
             sum.append(torch.mean(in1 * in2_pad[:, :, dz:dz + depth, dy:dy + hei, dx:dx + wid], 1, keepdim=True))
 
         output = torch.cat(sum, 1)
-        output = self.conv(output)
+        # output = self.conv(output)
 
         return self.activate(output)
 
-class PRmoduleBlock():
+class PRmoduleBlock(nn.Module):
     def __init__(self, dim,inchannels,outchannels):
+        super().__init__()
         self.dim = dim
-        self.transformer = layers.SpatialTransformer(self.dim)
         self.corralation = CorrTorch(pad_size=1, max_displacement=1, stride1=1, stride2=1)
-        self.conv1 = ConvBlock(dim, in_channels=inchannels,out_channels=inchannels // 2,stride=1) #reduce the channels
-        self.conv2 = ConvBlock(dim, in_channels=inchannels // 2, out_channels=inchannels // 2,stride=1)  # preserve more context information
-        self.conv3 = ConvBlock(dim, in_channels=inchannels // 2, out_channels=3, stride=1)  # estimate the deformation
+        self.conv1 = ConvBlock(dim, in_channels=inchannels*2+27,out_channels=inchannels ,stride=1) #reduce the channels
+        self.conv2 = ConvBlock(dim, in_channels=inchannels , out_channels=inchannels ,stride=1)  # preserve more context information
+        self.conv3 = ConvBlock(dim, in_channels=inchannels , out_channels=3, stride=1)  # estimate the deformation
+        self.transformer = layers.SpatialTransformer(self.dim)
 
     def forward(self,source,target,dvf):
         dvf = F.interpolate(dvf, source.shape[2:], mode='trilinear', align_corners=True)
@@ -191,10 +194,10 @@ class Unet(nn.Module):
         # cache final number of features
         self.final_nf = prev_nf
         self.PRmodule1 = PRmoduleBlock(ndims,inchannels=32,outchannels=32)
-        self.PRmodule2 = PRmoduleBlock(ndims, inchannels=16, outchannels=16)
+        self.PRmodule2 = PRmoduleBlock(ndims, inchannels=32, outchannels=32)
         self.PRmodule3 = PRmoduleBlock(ndims, inchannels=16, outchannels=16)
-        self.PRmodule4 = PRmoduleBlock(ndims, inchannels=24, outchannels=24)
-        self.PRmodule4 = PRmoduleBlock(ndims, inchannels=8, outchannels=8)
+        self.PRmodule4 = PRmoduleBlock(ndims, inchannels=16, outchannels=16)
+        self.PRmodule5 = PRmoduleBlock(ndims, inchannels=8, outchannels=8)
 
     def forward(self, source, target):
 
@@ -234,17 +237,18 @@ class Unet(nn.Module):
 
         # remaining convs at full resolution
         for conv in self.remaining:
-             source_final = conv(source)
-        for conv in self.remaining:
-             target_final = conv(target)
+             source = conv(source)
 
-        _,_,D,H,C = source_decoder[-2].shape
-        DVF0 = torch.zeros((1,3,D,H,C),dtype=float)
-        DVF1 = self.PRmodule1(source_decoder[-2],target_decoder[-2],DVF0)
-        DVF2 = self.PRmodule2(source_decoder[-3], target_decoder[-3], DVF1)
-        DVF3 = self.PRmodule3(source_decoder[-4], target_decoder[-4], DVF2)
-        DVF4 = self.PRmodule4(source_decoder[-5], target_decoder[-5], DVF3)
-        DVF5 = self.PRmodule4(source_final,target_final, DVF4)
+        for conv in self.remaining:
+             target = conv(target)
+
+        _,_,D,H,C = source_decoder[2].shape
+        DVF0 = torch.zeros((1,3,D,H,C),dtype=float).to(args.device).float()
+        DVF1 = self.PRmodule1(source_decoder[2],target_decoder[2],DVF0)
+        DVF2 = self.PRmodule2(source_decoder[3], target_decoder[3], DVF1)
+        DVF3 = self.PRmodule3(source_decoder[4], target_decoder[4], DVF2)
+        DVF4 = self.PRmodule4(source_decoder[5], target_decoder[5], DVF3)
+        DVF5 = self.PRmodule5(source,target, DVF4)
 
         return DVF5
 
@@ -302,7 +306,8 @@ class VxmDense(LoadableModel):
         # configure core unet model
         self.unet_model = Unet(
             self.dim,
-            infeats=(src_feats + trg_feats),
+            # infeats=(src_feats + trg_feats),
+            infeats=(src_feats),
             nb_features=nb_unet_features,
             nb_levels=nb_unet_levels,
             feat_mult=unet_feat_mult,
@@ -356,6 +361,8 @@ class VxmDense(LoadableModel):
         '''
 
         # concatenate inputs and propagate unet
+
+
         x = self.unet_model(source,target)
 
         # transform into flow field

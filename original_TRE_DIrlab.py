@@ -31,6 +31,13 @@ def main(args,is_save=False):
 
         flow =torch.zeros(x.shape, device=x.device) #warped,DVF
 
+
+        # ncc = NCC(y.cpu().detach().numpy(),x_def.cpu().detach().numpy())
+        # jac = jacobian_determinant(flow.squeeze().cpu().detach().numpy())
+        # _mse = MSE(y, x_def)
+        #
+        # _ssim = SSIM(y.cpu().detach().numpy()[0, 0],x_def.cpu().detach().numpy()[0, 0])
+
         crop_range = args.dirlab_cfg[batch + 1]['crop_range']
         # TRE
         _mean, _std = landmark_loss(flow[0],
