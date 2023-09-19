@@ -193,10 +193,6 @@ def main():
     best_loss = 99.
     for epoch in range(epoch_start, max_epoch):
         print('\n Training Starts')
-
-
-
-
         '''
         Training
         '''

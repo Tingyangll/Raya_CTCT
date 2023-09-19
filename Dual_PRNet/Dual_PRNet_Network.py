@@ -66,16 +66,18 @@ class PRmoduleBlock(nn.Module):
         super().__init__()
         self.dim = dim
         self.corralation = CorrTorch(pad_size=1, max_displacement=1, stride1=1, stride2=1)
-        self.conv1 = ConvBlock(dim, in_channels=inchannels*2+27,out_channels=inchannels ,stride=1) #reduce the channels
+        self.conv1 = ConvBlock(dim, in_channels=inchannels*3,out_channels=inchannels ,stride=1) #reduce the channels
         self.conv2 = ConvBlock(dim, in_channels=inchannels , out_channels=inchannels ,stride=1)  # preserve more context information
         self.conv3 = ConvBlock(dim, in_channels=inchannels , out_channels=3, stride=1)  # estimate the deformation
         self.transformer = layers.SpatialTransformer(self.dim)
 
     def forward(self,source,target,dvf):
+
         dvf = F.interpolate(dvf, source.shape[2:], mode='trilinear', align_corners=True)
-        warped = self.transformer(source,dvf)
-        feature = self.corralation(target,warped)
-        feature = torch.cat((source,feature),dim=1)
+        warped = self.transformer(source, dvf)
+
+        # feature = self.corralation(target,warped)
+        feature = torch.cat((source,warped),dim=1)
         feature = torch.cat((feature,target),dim=1)
 
         feature = self.conv1(feature)
@@ -244,6 +246,7 @@ class Unet(nn.Module):
 
         _,_,D,H,C = source_decoder[2].shape
         DVF0 = torch.zeros((1,3,D,H,C),dtype=float).to(args.device).float()
+        # DVF0 = None
         DVF1 = self.PRmodule1(source_decoder[2],target_decoder[2],DVF0)
         DVF2 = self.PRmodule2(source_decoder[3], target_decoder[3], DVF1)
         DVF3 = self.PRmodule3(source_decoder[4], target_decoder[4], DVF2)
