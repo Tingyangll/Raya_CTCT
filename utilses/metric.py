@@ -186,7 +186,7 @@ def jacobian_determinant(disp):
     """
 
     # check inputs
-    disp = disp.transpose(1, 2, 3, 0)
+    disp = disp.permute(1, 2, 3, 0).cpu()
     volshape = disp.shape[:-1]
     nb_dims = len(volshape)
     assert len(volshape) in (2, 3), 'flow has to be 2D or 3D'
